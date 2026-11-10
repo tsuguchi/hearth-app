@@ -1,13 +1,16 @@
-import { Trash2, UserRound } from 'lucide-react'
+import { UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { api, ApiError } from '../api'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { MoreMenu, type MoreMenuItem } from '../components/MoreMenu'
 import { Notice } from '../components/ui'
 import { UserLink } from '../components/UserLink'
 import type { Profile } from '../profile/useMyProfile'
 import { Comments } from '../social/Comments'
 import { FollowButton } from '../social/FollowButton'
 import { LikeButton } from '../social/LikeButton'
+import { ReportDialog } from '../social/ReportDialog'
+import { CaptionText } from './CaptionText'
 import { formatPostTime } from './format'
 import { PhotoCarousel } from './PhotoCarousel'
 import type { Post } from './types'
@@ -23,6 +26,7 @@ export function PostCard({ post, author, me, isAdmin, onDeleted }: {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [reporting, setReporting] = useState(false)
   const name = author?.displayName ?? '（読み込み中）'
   const date = post.createdAt?.toDate()
 
@@ -39,6 +43,14 @@ export function PostCard({ post, author, me, isAdmin, onDeleted }: {
     }
   }
 
+  // 自分の投稿は削除、ほかの人の投稿は通報。運営者はほかの人の投稿も削除できる
+  const menu: MoreMenuItem[] = isMine
+    ? [{ label: 'この投稿を削除', onSelect: () => setConfirming(true), danger: true }]
+    : [
+        { label: 'この投稿を通報', onSelect: () => setReporting(true) },
+        ...(isAdmin ? [{ label: '運営者として削除', onSelect: () => setConfirming(true), danger: true }] : []),
+      ]
+
   return (
     <article aria-labelledby={`post-${post.id}-author`} className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
       <header className="flex items-center gap-3">
@@ -53,22 +65,13 @@ export function PostCard({ post, author, me, isAdmin, onDeleted }: {
           </p>
         </div>
         <FollowButton target={post.author} name={name} onError={setError} />
-        {isMine && (
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="flex min-h-11 items-center gap-1 rounded-full px-3 text-note text-muted hover:text-error"
-          >
-            <Trash2 aria-hidden className="size-5" />
-            <span><span className="sr-only">この投稿を</span>削除</span>
-          </button>
-        )}
+        <MoreMenu label={`${name}さんの投稿の操作`} items={menu} />
       </header>
       <PhotoCarousel photos={post.photos} fallbackAlt={`${name}さんの写真`} />
       <div className="-my-1 flex items-center gap-1">
         <LikeButton me={me} postId={post.id} author={post.author} onError={setError} />
       </div>
-      {post.caption && <p className="whitespace-pre-wrap break-words">{post.caption}</p>}
+      {post.caption && <CaptionText text={post.caption} />}
       {error && <Notice tone="error">{error}</Notice>}
       <Comments me={me} postId={post.id} postAuthor={post.author} isAdmin={isAdmin} onError={setError} />
       <ConfirmDialog
@@ -81,6 +84,13 @@ export function PostCard({ post, author, me, isAdmin, onDeleted }: {
       >
         <p>写真・コメント・いいねも一緒に消え、元に戻せません。</p>
       </ConfirmDialog>
+      {reporting && (
+        <ReportDialog
+          me={me}
+          target={{ type: 'post', path: `posts/${post.id}`, user: post.author, label: `${name}さんの投稿` }}
+          onClose={() => setReporting(false)}
+        />
+      )}
     </article>
   )
 }

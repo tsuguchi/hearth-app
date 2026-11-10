@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Button } from './ui'
 
 // 取り消せない操作の前に確かめるダイアログ。読み上げとキーボードの動きは Radix に任せる
-export function ConfirmDialog({ open, onOpenChange, title, children, confirmLabel, busy, onConfirm }: {
+export function ConfirmDialog({ open, onOpenChange, title, children, confirmLabel, busy, onConfirm, danger = true }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
@@ -11,6 +11,8 @@ export function ConfirmDialog({ open, onOpenChange, title, children, confirmLabe
   confirmLabel: string
   busy?: boolean
   onConfirm: () => void
+  // 取り消せない・危ない操作なら赤いボタンにする
+  danger?: boolean
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -25,7 +27,7 @@ export function ConfirmDialog({ open, onOpenChange, title, children, confirmLabe
             <Dialog.Close asChild>
               <Button variant="secondary">やめる</Button>
             </Dialog.Close>
-            <Button busy={busy} onClick={onConfirm} className="bg-error text-surface">{confirmLabel}</Button>
+            <Button busy={busy} onClick={onConfirm} className={danger ? 'bg-error text-surface' : ''}>{confirmLabel}</Button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

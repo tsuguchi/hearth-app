@@ -138,7 +138,11 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && exists(/databases/$(database)/documents/users/$(request.resource.data.followee))
         && !blockedBetween(request.resource.data.followee, request.auth.uid);
-      allow delete: if isMember() && resource.data.follower == request.auth.uid;
+      // 外せるのはフォローした人。ブロックしたときは、ブロックした人が相手からのフォローも外せる
+      allow delete: if isMember()
+        && (resource.data.follower == request.auth.uid
+          || (resource.data.followee == request.auth.uid
+            && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid)/blocks/$(resource.data.follower))));
     }
 
     // ブロック（F-80、F-81）。本人だけが読み書きでき、相手には分からない
@@ -179,6 +183,21 @@ service cloud.firestore {
             && postDoc(request.resource.data.postId).data.author == uid
             && getAfter(/databases/$(database)/documents/posts/$(request.resource.data.postId)/comments/$(request.resource.data.commentId)).data.author == request.auth.uid)
         );
+    }
+
+    // 通報（3.9、F-82）。利用者が作り、運営者だけが読む。メッセージの通報は、メッセージの機能と一緒に足す
+    match /reports/{reportId} {
+      allow read: if isMember() && request.auth.token.admin == true;
+      allow create: if isMember()
+        && request.resource.data.keys().hasOnly(['reporter', 'targetType', 'targetPath', 'targetUser', 'reason', 'detail', 'status', 'createdAt'])
+        && request.resource.data.reporter == request.auth.uid
+        && request.resource.data.targetType in ['post', 'comment', 'user']
+        && request.resource.data.targetPath is string && request.resource.data.targetPath.size() <= 200
+        && request.resource.data.targetUser is string && request.resource.data.targetUser != request.auth.uid
+        && request.resource.data.reason in ['spam', 'harassment', 'inappropriate', 'privacy', 'other']
+        && request.resource.data.detail is string && request.resource.data.detail.size() <= 1000
+        && request.resource.data.status == 'open'
+        && request.resource.data.createdAt == request.time;
     }
 
     // ここに書いていない文書（招待・全体の設定など）は、ブラウザからは読み書きできない

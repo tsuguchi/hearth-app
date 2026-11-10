@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { Button } from '../components/ui'
 import { follow, unfollow } from './actions'
+import { useBlocks } from './BlocksProvider'
 import { useFollowing } from './FollowingProvider'
 
 // フォローする・やめる（F-40）。相手の承認は要らない
 export function FollowButton({ target, name, onError }: { target: string, name: string, onError: (message: string) => void }) {
   const { me, following } = useFollowing()
+  const { blocked } = useBlocks()
   const [busy, setBusy] = useState(false)
-  if (target === me || following === null) return null
+  // ブロックした人はフォローできない（F-80）
+  if (target === me || following === null || blocked === null || blocked.has(target)) return null
   const isFollowing = following.has(target)
 
   async function toggle() {
