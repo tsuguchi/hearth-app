@@ -28,6 +28,8 @@ export async function uploadMessagePhoto(env: Env, caller: Caller, form: FormDat
   if (typeof conversationId !== 'string' || !(file instanceof Blob)) return fail(400, 'invalid_input')
   const members = conversationMembers(conversationId, caller.uid)
   if (!members) return fail(403, 'forbidden')
+  // 運営者がメッセージを止めているときは受け取らない
+  if ((await getDocument(env, 'config/app'))?.messagesEnabled !== true) return fail(403, 'messages_disabled')
   if (file.size === 0) return fail(400, 'invalid_input')
   if (file.size > ENCRYPTED_MAX_BYTES) return fail(413, 'too_large')
 

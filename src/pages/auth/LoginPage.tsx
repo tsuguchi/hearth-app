@@ -1,15 +1,22 @@
 import { FirebaseError } from 'firebase/app'
 import { signInWithEmailAndPassword } from 'firebase/auth'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { AuthLayout } from '../../components/AuthLayout'
 import { Button, Notice, TextField, TextLink } from '../../components/ui'
 import { auth } from '../../firebase'
+import { ACCOUNT_DELETED_KEY } from '../DeleteAccountPage'
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // アカウントを削除した直後は、その旨を一度だけ知らせる
+  // （開発中の StrictMode では初期値の関数が 2 回呼ばれるので、ここでは読むだけにし、消すのは表示した後にする）
+  const [deleted] = useState(() => sessionStorage.getItem(ACCOUNT_DELETED_KEY) === '1')
+  useEffect(() => {
+    if (deleted) sessionStorage.removeItem(ACCOUNT_DELETED_KEY)
+  }, [deleted])
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -30,6 +37,7 @@ export function LoginPage() {
   return (
     <AuthLayout title="ログイン">
       <p>ハースは、招待を受けた人だけが使える写真の共有の場です。はじめての方は、届いた招待のリンクから登録してください。</p>
+      {deleted && <Notice tone="success">アカウントを削除しました。これまでご利用いただき、ありがとうございました。</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
       <form onSubmit={submit} noValidate className="flex flex-col gap-5">
         <TextField label="メールアドレス" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />

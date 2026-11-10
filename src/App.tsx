@@ -4,6 +4,7 @@ import { useAuth } from './auth/context'
 import { AuthLayout, Loading } from './components/AuthLayout'
 import { Notice } from './components/ui'
 import { JoinPage } from './pages/auth/JoinPage'
+import { LegalPage } from './pages/LegalPage'
 import { LoginPage } from './pages/auth/LoginPage'
 import { NotMemberPage } from './pages/auth/NotMemberPage'
 import { ProfileSetupPage } from './pages/auth/ProfileSetupPage'
@@ -12,6 +13,7 @@ import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
 import { AdminPage } from './pages/AdminPage'
 import { BlockedUsersPage } from './pages/BlockedUsersPage'
 import { ConversationPage } from './pages/ConversationPage'
+import { DeleteAccountPage } from './pages/DeleteAccountPage'
 import { DevicesPage } from './pages/DevicesPage'
 import { InvitesPage } from './pages/InvitesPage'
 import { MessagesPage } from './pages/MessagesPage'
@@ -24,6 +26,7 @@ import { SearchPage } from './pages/SearchPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { TimelinePage } from './pages/TimelinePage'
 import { PhotoSession } from './photos/PhotoSession'
+import { messagesEnabled } from './features'
 import { DeviceProvider } from './messages/DeviceProvider'
 import { MessagesProvider } from './messages/MessagesProvider'
 import { BlocksProvider } from './social/BlocksProvider'
@@ -33,6 +36,17 @@ import { useMyProfile } from './profile/useMyProfile'
 
 // ログイン → メールアドレスの確認 → 利用者の印の確認 → プロフィールを決める → ハースの画面、の順に進める
 export default function App() {
+  return (
+    <Routes>
+      {/* 利用規約とプライバシーポリシーは、ログインしていなくても読める */}
+      <Route path="/terms" element={<LegalPage kind="terms" />} />
+      <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+      <Route path="*" element={<GatedApp />} />
+    </Routes>
+  )
+}
+
+function GatedApp() {
   const { loading, user, isMember } = useAuth()
 
   if (loading) return <Loading />
@@ -78,14 +92,15 @@ function MemberApp({ user }: { user: User }) {
                   <Route path="/search" element={<SearchPage />} />
                   <Route path="/new" element={<NewPostPage uid={user.uid} />} />
                   <Route path="/notifications" element={<NotificationsPage />} />
-                  <Route path="/messages" element={<MessagesPage me={user.uid} />} />
-                  <Route path="/messages/:username" element={<ConversationPage me={user.uid} />} />
-                  <Route path="/settings/devices" element={<DevicesPage me={user.uid} />} />
+                  {messagesEnabled && <Route path="/messages" element={<MessagesPage me={user.uid} />} />}
+                  {messagesEnabled && <Route path="/messages/:username" element={<ConversationPage me={user.uid} />} />}
+                  {messagesEnabled && <Route path="/settings/devices" element={<DevicesPage me={user.uid} />} />}
                   <Route path="/me" element={<Navigate to={`/users/${profile.username}`} replace />} />
                   <Route path="/users/:username" element={<ProfilePage />} />
                   <Route path="/posts/:postId" element={<PostPage me={user.uid} />} />
                   <Route path="/invites" element={<InvitesPage />} />
                   {isAdmin && <Route path="/admin" element={<AdminPage me={user.uid} />} />}
+                  <Route path="/settings/delete-account" element={<DeleteAccountPage uid={user.uid} />} />
                   <Route path="/settings/blocks" element={<BlockedUsersPage me={user.uid} />} />
                   <Route path="/settings/profile" element={<ProfileEditPage uid={user.uid} profile={profile} />} />
                   <Route path="/settings" element={<SettingsPage uid={user.uid} profile={profile} email={user.email} />} />

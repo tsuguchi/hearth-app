@@ -103,6 +103,29 @@ export async function getDocument(env: Env, path: string, transaction?: string):
   return document
 }
 
+// 条件で文書を探す。allDescendants を立てると、同じ名前のサブコレクションをすべて探す（コレクショングループ）。
+// select を渡すと、その欄だけを受け取る（件数が多いときの通信を減らす）。path は documents/ より後ろの場所
+export async function runQuery(env: Env, options: {
+  collectionId: string
+  allDescendants?: boolean
+  where?: { field: string, op: 'EQUAL' | 'ARRAY_CONTAINS', value: Value }
+  select?: string[]
+}): Promise<{ path: string, fields: Fields }[]> {
+  const prefix = `${documentName(env, '')}`
+  const results = await expectOk(await call(env, 'POST', `${baseUrl(env)}/documents:runQuery`, {
+    structuredQuery: {
+      from: [{ collectionId: options.collectionId, allDescendants: options.allDescendants ?? false }],
+      ...(options.where
+        ? { where: { fieldFilter: { field: { fieldPath: options.where.field }, op: options.where.op, value: encodeValue(options.where.value) } } }
+        : {}),
+      ...(options.select ? { select: { fields: options.select.map((fieldPath) => ({ fieldPath })) } } : {}),
+    },
+  })) as { document?: { name: string, fields?: Record<string, Encoded> } }[]
+  return results
+    .filter((result) => result.document)
+    .map((result) => ({ path: result.document!.name.slice(prefix.length), fields: decodeFields(result.document!.fields ?? {}) }))
+}
+
 // 1 つの欄が値と等しい文書を探す（例: invites の createdBy が uid と等しいもの）。{ id, fields } の配列を返す
 export async function findDocuments(env: Env, collectionId: string, field: string, value: Value): Promise<{ id: string, fields: Fields }[]> {
   const results = await expectOk(await call(env, 'POST', `${baseUrl(env)}/documents:runQuery`, {
@@ -161,6 +184,8 @@ export type Write =
   | { kind: 'set', path: string, fields: Fields, mustNotExist?: boolean }
   | { kind: 'update', path: string, fields: Fields }
   | { kind: 'delete', path: string }
+  // 数を増やす・減らす（読まずに書けるので、ほかの書き込みと重なってもずれない）
+  | { kind: 'increment', path: string, field: string, by: number }
 
 function toRestWrite(env: Env, write: Write): unknown {
   const name = documentName(env, write.path)
@@ -178,6 +203,8 @@ function toRestWrite(env: Env, write: Write): unknown {
       }
     case 'delete':
       return { delete: name }
+    case 'increment':
+      return { transform: { document: name, fieldTransforms: [{ fieldPath: write.field, increment: { integerValue: String(write.by) } }] } }
   }
 }
 

@@ -206,6 +206,11 @@ service cloud.firestore {
       return members[0] == request.auth.uid ? members[1] : members[0];
     }
 
+    // メッセージを使えるか。法令の確認が済むまで、本番では運営者が止めておく（config/app の messagesEnabled）
+    function messagesEnabled() {
+      return get(/databases/$(database)/documents/config/app).data.get('messagesEnabled', false) == true;
+    }
+
     function conversationAfter(conversationId) {
       return getAfter(/databases/$(database)/documents/conversations/$(conversationId)).data;
     }
@@ -215,6 +220,7 @@ service cloud.firestore {
       allow read: if isMember()
         && (resource == null ? request.auth.uid in conversationId.split('_') : request.auth.uid in resource.data.members);
       allow create: if isMember()
+        && messagesEnabled()
         && request.resource.data.keys().hasOnly(['members', 'createdAt', 'lastMessageAt', 'lastReadAt'])
         && request.resource.data.members is list
         && request.resource.data.members.size() == 2
@@ -242,6 +248,7 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if isMember() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.members;
         allow create: if isMember()
+          && messagesEnabled()
           && request.auth.uid in conversationAfter(conversationId).members
           && !blockedBetween(conversationAfter(conversationId).members[0], conversationAfter(conversationId).members[1])
           && request.resource.data.keys().hasOnly(['v', 'sender', 'senderDevice', 'createdAt', 'epk', 'keys', 'iv', 'ct', 'photos', 'sig'])

@@ -4,6 +4,7 @@ import { UserRound, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { AppShell } from '../components/AppShell'
+import { messagesEnabled } from '../features'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { MoreMenu } from '../components/MoreMenu'
 import { Button, Notice } from '../components/ui'
@@ -86,7 +87,7 @@ export function ProfilePage() {
               ) : (
                 <div className="mt-1 flex flex-wrap gap-2">
                   <FollowButton target={uid} name={profile.displayName} onError={setError} />
-                  {!isBlocked && (
+                  {messagesEnabled && !isBlocked && (
                     <Link to={`/messages/${profile.username}`} className="inline-flex min-h-11 items-center rounded-full border border-border px-4 text-note font-bold hover:bg-bg">
                       メッセージを送る
                     </Link>

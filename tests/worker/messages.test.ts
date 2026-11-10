@@ -4,7 +4,10 @@ import { conversationMembers, deleteMessage, messagePhotoKey, serveMessagePhoto,
 import { createSessionValue, SESSION_COOKIE } from '../../worker/session'
 import { bucket, clearEmulators, createMember, env, setDocuments } from '../helpers'
 
-beforeEach(clearEmulators)
+beforeEach(async () => {
+  await clearEmulators()
+  await setDocuments({ 'config/app': { messagesEnabled: true } })
+})
 
 function form(conversationId: string, size = 200): FormData {
   const data = new FormData()
@@ -50,6 +53,12 @@ describe('メッセージの写真', () => {
     const { conversationId } = await pair()
     const carol = await createMember('carol')
     expect(await uploadMessagePhoto(env, { uid: carol.uid, admin: false }, form(conversationId))).toMatchObject({ ok: false, error: 'forbidden' })
+  })
+
+  it('運営者がメッセージを止めているときは受け取らない', async () => {
+    const { a, conversationId } = await pair()
+    await setDocuments({ 'config/app': { messagesEnabled: false } })
+    expect(await uploadMessagePhoto(env, { uid: a.uid, admin: false }, form(conversationId))).toMatchObject({ ok: false, error: 'messages_disabled' })
   })
 
   it('大きすぎる写真は受け取らない', async () => {

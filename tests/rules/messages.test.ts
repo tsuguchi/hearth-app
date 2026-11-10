@@ -25,6 +25,7 @@ beforeEach(async () => {
       await setDoc(doc(firestore, 'users', uid, 'devices', `${uid}-device`), { encPublicKey: { kty: 'EC' }, signPublicKey: { kty: 'EC' }, label: 'test' })
     }
     await setDoc(doc(firestore, 'users/alice/blocks/mallory'), { createdAt: new Date() })
+    await setDoc(doc(firestore, 'config/app'), { messagesEnabled: true })
   })
 })
 
@@ -73,6 +74,11 @@ describe('やり取りとメッセージ', () => {
   it('まだないやり取りは、自分が入る ID なら「ない」ことを確かめられる。ほかの人どうしのものは確かめられない', async () => {
     await assertSucceeds(getDoc(doc(db('alice'), 'conversations/alice_bob')))
     await assertFails(getDoc(doc(db('carol'), 'conversations/alice_bob')))
+  })
+
+  it('運営者がメッセージを止めているときは、やり取りもメッセージも作れない', async () => {
+    await testEnv.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), 'config/app'), { messagesEnabled: false }))
+    await assertFails(firstMessage(db('alice'), 'alice', 'bob'))
   })
 
   it('第三者は、やり取りもメッセージも読めない', async () => {

@@ -84,6 +84,7 @@ export function JoinPage() {
           onChange={(event) => setPassword(event.target.value)}
         />
         <CheckboxField label="18 歳以上です" checked={adult} error={errors.adult} onChange={(event) => setAdult(event.target.checked)} />
+        <p className="text-note">「登録する」を押すと、<TextLink to="/terms">利用規約</TextLink>と<TextLink to="/privacy">プライバシーポリシー</TextLink>に同意したことになります。</p>
         <Button type="submit" busy={busy}>{busy ? '登録しています…' : '登録する'}</Button>
       </form>
     </AuthLayout>

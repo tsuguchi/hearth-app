@@ -12,7 +12,8 @@
     "seed": "node scripts/seed-emulator.mjs",
     "test": "firebase emulators:exec --only auth,firestore --project demo-hearth \"vitest run\"",
     "deploy": "npm run build && wrangler deploy",
-    "admin": "node scripts/make-admin-emulator.mjs"
+    "admin": "node scripts/make-admin-emulator.mjs",
+    "deploy:rules": "firebase deploy --only firestore"
   },
   "dependencies": {
     "@fontsource/noto-sans-jp": "^5.3.1",

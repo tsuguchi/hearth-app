@@ -1,5 +1,7 @@
 import { signOut } from 'firebase/auth'
 import { Link } from 'react-router'
+import { messagesEnabled } from '../features'
+import { LegalLinks } from '../components/LegalLinks'
 import { AppShell } from '../components/AppShell'
 import { Button } from '../components/ui'
 import { auth } from '../firebase'
@@ -31,13 +33,19 @@ export function SettingsPage({ uid, profile, email }: { uid: string, profile: Pr
             <Link to="/settings/blocks" className="inline-flex min-h-11 items-center rounded-full border border-border px-5 font-bold hover:bg-bg">
               ブロックした人
             </Link>
-            <Link to="/settings/devices" className="inline-flex min-h-11 items-center rounded-full border border-border px-5 font-bold hover:bg-bg">
-              メッセージの端末
-            </Link>
+            {messagesEnabled && (
+              <Link to="/settings/devices" className="inline-flex min-h-11 items-center rounded-full border border-border px-5 font-bold hover:bg-bg">
+                メッセージの端末
+              </Link>
+            )}
           </div>
         </section>
-        <div>
+        <LegalLinks />
+        <div className="flex flex-wrap gap-3">
           <Button variant="secondary" onClick={() => signOut(auth)}>ログアウト</Button>
+          <Link to="/settings/delete-account" className="inline-flex min-h-11 items-center rounded-full px-5 font-bold text-error underline underline-offset-4">
+            アカウントを削除
+          </Link>
         </div>
       </div>
     </AppShell>
