@@ -6,6 +6,8 @@ export type AuthState = {
   user: User | null
   // ログインの証明書に「利用者」の印（member）があるか。招待で登録した人だけが持つ
   isMember: boolean
+  // 運営者の印（admin）があるか
+  isAdmin: boolean
   // メールアドレスの確認の後などに、証明書を取り直して印を読み直す
   refresh: () => Promise<void>
 }
