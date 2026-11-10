@@ -1,6 +1,6 @@
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react'
 import { Link } from 'react-router'
-import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, useId } from 'react'
+import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes, useId } from 'react'
 
 // ハースの基本の部品。見た目は DESIGN.md、押せる部分は 44px 四方以上
 
@@ -59,6 +59,39 @@ export function TextField({ label, support, error, className = '', ...props }: T
         {...props}
       />
       {error && <ErrorText id={errorId}>{error}</ErrorText>}
+    </div>
+  )
+}
+
+type TextAreaFieldProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id' | 'value'> & {
+  label: string
+  support?: ReactNode
+  error?: string | null
+  value: string
+  maxLength: number
+}
+
+// 複数行の入力欄。あと何文字書けるかを示す
+export function TextAreaField({ label, support, error, value, maxLength, className = '', ...props }: TextAreaFieldProps) {
+  const id = useId()
+  const describedBy = [support ? `${id}-support` : null, `${id}-count`, error ? `${id}-error` : null].filter(Boolean).join(' ')
+  const over = value.length > maxLength
+  return (
+    <div className={`flex flex-col gap-1 ${className}`}>
+      <label htmlFor={id} className="font-bold">{label}</label>
+      {support && <p id={`${id}-support`} className="text-note text-muted">{support}</p>}
+      <textarea
+        id={id}
+        value={value}
+        aria-describedby={describedBy}
+        aria-invalid={error || over ? true : undefined}
+        className="min-h-28 rounded-lg border border-border bg-surface px-3 py-2 text-body aria-invalid:border-2 aria-invalid:border-error"
+        {...props}
+      />
+      <p id={`${id}-count`} className={`text-note ${over ? 'font-bold text-error' : 'text-muted'}`}>
+        {over ? `${value.length - maxLength} 文字多すぎます（${maxLength} 文字まで）` : `${value.length} / ${maxLength} 文字`}
+      </p>
+      {error && <ErrorText id={`${id}-error`}>{error}</ErrorText>}
     </div>
   )
 }
