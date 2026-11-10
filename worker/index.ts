@@ -2,6 +2,7 @@ import { adminState, setSuspended, updateInviteSettings } from './admin'
 import { type Env } from './env'
 import { getDocument } from './firestore'
 import { createInvite, listMyInvites, revokeInvite } from './invites'
+import { deleteMessage, serveMessagePhoto, uploadMessagePhoto } from './messages'
 import { join, type JoinErrorCode } from './join'
 import { servePhoto, uploadPhoto } from './photos'
 import { createPost, deletePost } from './posts'
@@ -60,7 +61,11 @@ async function handle(request: Request, env: Env): Promise<Response> {
   const method = request.method
 
   const photo = pathname.match(/^\/photos\/([^/]+)\/([^/]+)$/)
-  if (photo && method === 'GET') return servePhoto(env, request, photo[1], photo[2])
+  if (photo && method === 'GET') {
+    // メッセージの写真は暗号化したまま、やり取りの 2 人にだけ返す
+    if (photo[2] === 'message') return serveMessagePhoto(env, request, photo[1])
+    return servePhoto(env, request, photo[1], photo[2])
+  }
 
   if (!pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404)
   if (method !== 'GET' && !sameOrigin(request, url)) return json({ error: 'forbidden' }, 403)
@@ -96,6 +101,19 @@ async function handle(request: Request, env: Env): Promise<Response> {
 
   const post = pathname.match(/^\/api\/posts\/([^/]+)$/)
   if (post && method === 'DELETE') return respond(await deletePost(env, caller, post[1]))
+
+  if (pathname === '/api/message-photos' && method === 'POST') {
+    if (Number(request.headers.get('content-length') ?? 0) > UPLOAD_LIMIT) return json({ error: 'too_large' }, 413)
+    let form: FormData
+    try {
+      form = await request.formData()
+    } catch {
+      return json({ error: 'invalid_input' }, 400)
+    }
+    return respond(await uploadMessagePhoto(env, caller, form))
+  }
+  const message = pathname.match(/^\/api\/conversations\/([^/]+)\/messages\/([^/]+)$/)
+  if (message && method === 'DELETE') return respond(await deleteMessage(env, caller, message[1], message[2]))
 
   if (pathname === '/api/invites' && method === 'GET') return respond(await listMyInvites(env, caller))
   if (pathname === '/api/invites' && method === 'POST') return respond(await createInvite(env, caller))

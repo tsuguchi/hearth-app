@@ -3,6 +3,7 @@ import { type ReactNode, useEffect } from 'react'
 import { Link, NavLink } from 'react-router'
 import { EmulatorBanner } from './AuthLayout'
 import { useAuth } from '../auth/context'
+import { useMessages } from '../messages/MessagesProvider'
 import { useNotifications } from '../notifications/NotificationsProvider'
 import { Logo } from './ui'
 
@@ -43,7 +44,10 @@ function Badge({ count, layout }: { count: number, layout: 'bottom' | 'side' }) 
 }
 
 function NavItems({ items, layout }: { items: NavItem[], layout: 'bottom' | 'side' }) {
-  const { unread } = useNotifications()
+  const { unread: unreadNotifications } = useNotifications()
+  const { unread: unreadMessages } = useMessages()
+  // 読んでいない数を出す画面（F-96）
+  const counts: Record<string, number> = { '/notifications': unreadNotifications, '/messages': unreadMessages }
   return items.map(({ to, label, shortLabel, icon: Icon }) => (
     <li key={to} className={layout === 'bottom' ? 'flex-1' : ''}>
       <NavLink to={to} end={to === '/'} className={({ isActive }) => navClass(isActive, layout)}>
@@ -51,11 +55,11 @@ function NavItems({ items, layout }: { items: NavItem[], layout: 'bottom' | 'sid
           <>
             <span className="relative">
               <Icon aria-hidden className="size-6 shrink-0" strokeWidth={isActive ? 2.5 : 1.75} />
-              {to === '/notifications' && layout === 'bottom' && <Badge count={unread} layout="bottom" />}
+              {layout === 'bottom' && <Badge count={counts[to] ?? 0} layout="bottom" />}
             </span>
             <span>{layout === 'bottom' ? shortLabel ?? label : label}</span>
-            {to === '/notifications' && unread > 0 && <span className="sr-only">（未読 {unread} 件）</span>}
-            {to === '/notifications' && layout === 'side' && <Badge count={unread} layout="side" />}
+            {(counts[to] ?? 0) > 0 && <span className="sr-only">（未読 {counts[to]} 件）</span>}
+            {layout === 'side' && <Badge count={counts[to] ?? 0} layout="side" />}
           </>
         )}
       </NavLink>

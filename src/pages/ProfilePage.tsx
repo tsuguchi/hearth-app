@@ -84,7 +84,14 @@ export function ProfilePage() {
                   プロフィールを編集
                 </Link>
               ) : (
-                <div className="mt-1"><FollowButton target={uid} name={profile.displayName} onError={setError} /></div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <FollowButton target={uid} name={profile.displayName} onError={setError} />
+                  {!isBlocked && (
+                    <Link to={`/messages/${profile.username}`} className="inline-flex min-h-11 items-center rounded-full border border-border px-4 text-note font-bold hover:bg-bg">
+                      メッセージを送る
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
           </div>
