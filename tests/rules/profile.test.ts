@@ -100,10 +100,17 @@ describe('本人だけの情報と、ブラウザから使えない文書', () =
     })
   })
 
-  it('本人だけの情報は、本人だけが読め、だれも書けない', async () => {
+  it('本人だけの情報は、本人だけが読める。写真の枚数などは本人も書けない', async () => {
     await assertSucceeds(getDoc(doc(db('alice'), 'userPrivate/alice')))
     await assertFails(getDoc(doc(db('bob'), 'userPrivate/alice')))
     await assertFails(updateDoc(doc(db('alice'), 'userPrivate/alice'), { photoCount: 999 }))
+    await assertFails(updateDoc(doc(db('alice'), 'userPrivate/alice'), { lastReadNotificationsAt: serverTimestamp(), photoCount: 5 }))
+  })
+
+  it('通知を読んだ日時だけは、本人が今の日時で書ける', async () => {
+    await assertSucceeds(updateDoc(doc(db('alice'), 'userPrivate/alice'), { lastReadNotificationsAt: serverTimestamp() }))
+    await assertFails(updateDoc(doc(db('alice'), 'userPrivate/alice'), { lastReadNotificationsAt: new Date('2099-01-01') }))
+    await assertFails(updateDoc(doc(db('bob'), 'userPrivate/alice'), { lastReadNotificationsAt: serverTimestamp() }))
   })
 
   it('招待と全体の設定は、ブラウザからは読み書きできない', async () => {
