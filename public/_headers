@@ -3,8 +3,9 @@
 #   connect-src *.googleapis.com … Firebase Authentication と Cloud Firestore との通信
 #   img-src blob:                … メッセージの写真（端末で暗号を解いた画像）と、投稿する前の見本の画像
 #   style-src 'unsafe-inline'    … React の style 属性（写真の縦横の比）に必要
+#   font-src data:               … 組み立てのときに CSS へ埋め込まれる小さな書体のファイル（書体はプログラムを動かさない）
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://www.googleapis.com; img-src 'self' blob: data:; font-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://www.googleapis.com; img-src 'self' blob: data:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
