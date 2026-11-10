@@ -4,24 +4,21 @@ import { api, ApiError } from '../api'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Notice } from '../components/ui'
 import type { Profile } from '../profile/useMyProfile'
+import { Comments } from '../social/Comments'
+import { FollowButton } from '../social/FollowButton'
+import { LikeButton } from '../social/LikeButton'
+import { formatPostTime } from './format'
 import { PhotoCarousel } from './PhotoCarousel'
 import type { Post } from './types'
 
-export function formatPostTime(date: Date, now = new Date()): string {
-  const minutes = Math.floor((now.getTime() - date.getTime()) / 60000)
-  if (minutes < 1) return 'たった今'
-  if (minutes < 60) return `${minutes} 分前`
-  if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} 時間前`
-  const sameYear = date.getFullYear() === now.getFullYear()
-  return `${sameYear ? '' : `${date.getFullYear()}年`}${date.getMonth() + 1}月${date.getDate()}日`
-}
-
-export function PostCard({ post, author, isMine, onDeleted }: {
+export function PostCard({ post, author, me, isAdmin, onDeleted }: {
   post: Post
   author: Profile | null | undefined
-  isMine: boolean
+  me: string
+  isAdmin: boolean
   onDeleted: () => void
 }) {
+  const isMine = post.author === me
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -54,6 +51,7 @@ export function PostCard({ post, author, isMine, onDeleted }: {
             {date && <> ・ <time dateTime={date.toISOString()}>{formatPostTime(date)}</time></>}
           </p>
         </div>
+        <FollowButton target={post.author} name={name} onError={setError} />
         {isMine && (
           <button
             type="button"
@@ -66,8 +64,12 @@ export function PostCard({ post, author, isMine, onDeleted }: {
         )}
       </header>
       <PhotoCarousel photos={post.photos} fallbackAlt={`${name}さんの写真`} />
+      <div className="-my-1 flex items-center gap-1">
+        <LikeButton me={me} postId={post.id} author={post.author} onError={setError} />
+      </div>
       {post.caption && <p className="whitespace-pre-wrap break-words">{post.caption}</p>}
       {error && <Notice tone="error">{error}</Notice>}
+      <Comments me={me} postId={post.id} postAuthor={post.author} isAdmin={isAdmin} onError={setError} />
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}

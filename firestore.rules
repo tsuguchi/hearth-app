@@ -26,6 +26,16 @@ service cloud.firestore {
         && data.bio is string && data.bio.size() <= 150;
     }
 
+    // どちらかが相手をブロックしているか（3.5）。ブロックの文書は本人しか読めないが、ここからは調べられる
+    function blockedBetween(a, b) {
+      return exists(/databases/$(database)/documents/users/$(a)/blocks/$(b))
+        || exists(/databases/$(database)/documents/users/$(b)/blocks/$(a));
+    }
+
+    function postDoc(postId) {
+      return get(/databases/$(database)/documents/posts/$(postId));
+    }
+
     function usernameDoc(name) {
       return /databases/$(database)/documents/usernames/$(name);
     }
@@ -82,6 +92,89 @@ service cloud.firestore {
     // 投稿（3.4）。利用者全員が読める。止めたアカウントの投稿（hidden）は読めない。Workers だけが書く
     match /posts/{postId} {
       allow read: if isMember() && resource.data.hidden == false;
+
+      // いいね（F-41）。文書の ID を自分の uid に限り、1 人 1 回にする
+      match /likes/{likerId} {
+        allow read: if isMember();
+        allow create: if isSelf(likerId)
+          && request.resource.data.keys().hasOnly(['createdAt'])
+          && request.resource.data.createdAt == request.time
+          && postDoc(postId).data.hidden == false
+          && !blockedBetween(postDoc(postId).data.author, likerId);
+        allow delete: if isSelf(likerId);
+      }
+
+      // コメント（F-42、F-43）。消せるのは、書いた人・投稿した人・運営者
+      match /comments/{commentId} {
+        allow read: if isMember();
+        allow create: if isMember()
+          && request.resource.data.keys().hasOnly(['author', 'text', 'createdAt'])
+          && request.resource.data.author == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 500
+          && request.resource.data.createdAt == request.time
+          && postDoc(postId).data.hidden == false
+          && !blockedBetween(postDoc(postId).data.author, request.auth.uid);
+        allow delete: if isMember()
+          && (resource.data.author == request.auth.uid
+            || postDoc(postId).data.author == request.auth.uid
+            || request.auth.token.admin == true);
+      }
+    }
+
+    // フォロー（F-40）。文書の ID は「フォローする人_される人」
+    match /follows/{followId} {
+      allow read: if isMember();
+      allow create: if isMember()
+        && request.resource.data.keys().hasOnly(['follower', 'followee', 'createdAt'])
+        && request.resource.data.follower == request.auth.uid
+        && request.resource.data.followee is string
+        && request.resource.data.followee != request.auth.uid
+        && followId == request.auth.uid + '_' + request.resource.data.followee
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/users/$(request.resource.data.followee))
+        && !blockedBetween(request.resource.data.followee, request.auth.uid);
+      allow delete: if isMember() && resource.data.follower == request.auth.uid;
+    }
+
+    // ブロック（F-80、F-81）。本人だけが読み書きでき、相手には分からない
+    match /users/{uid}/blocks/{targetUid} {
+      allow read: if isSelf(uid);
+      allow create: if isSelf(uid)
+        && targetUid != uid
+        && request.resource.data.keys().hasOnly(['createdAt'])
+        && request.resource.data.createdAt == request.time;
+      allow delete: if isSelf(uid);
+    }
+
+    // 通知（3.7、F-95）。いいね・コメント・フォローをした人が、相手の通知として書く。
+    // 本当にその操作をしたか（同じ書き込みで、いいね・コメント・フォローの文書ができているか）を確かめる
+    match /users/{uid}/notifications/{notificationId} {
+      allow read: if isSelf(uid);
+      // 本人は自分の通知を消せる。操作した人は、取り消したとき（いいねを外す等）に自分が書いた通知を消せる
+      allow delete: if isSelf(uid)
+        || (isMember() && (resource == null || resource.data.actor == request.auth.uid));
+      allow create: if isMember()
+        && uid != request.auth.uid
+        && request.resource.data.actor == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && !blockedBetween(uid, request.auth.uid)
+        && (
+          (request.resource.data.type == 'follow'
+            && notificationId == 'follow_' + request.auth.uid
+            && request.resource.data.keys().hasOnly(['type', 'actor', 'createdAt'])
+            && existsAfter(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + uid)))
+          || (request.resource.data.type == 'like'
+            && request.resource.data.keys().hasOnly(['type', 'actor', 'postId', 'createdAt'])
+            && notificationId == 'like_' + request.resource.data.postId + '_' + request.auth.uid
+            && postDoc(request.resource.data.postId).data.author == uid
+            && existsAfter(/databases/$(database)/documents/posts/$(request.resource.data.postId)/likes/$(request.auth.uid)))
+          || (request.resource.data.type == 'comment'
+            && request.resource.data.keys().hasOnly(['type', 'actor', 'postId', 'commentId', 'createdAt'])
+            && notificationId == 'comment_' + request.resource.data.commentId
+            && postDoc(request.resource.data.postId).data.author == uid
+            && getAfter(/databases/$(database)/documents/posts/$(request.resource.data.postId)/comments/$(request.resource.data.commentId)).data.author == request.auth.uid)
+        );
     }
 
     // ここに書いていない文書（招待・全体の設定など）は、ブラウザからは読み書きできない
