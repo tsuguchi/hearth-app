@@ -15,11 +15,12 @@ type Member = Profile & { uid: string }
 type Report = {
   id: string
   reporter: string
-  targetType: 'post' | 'comment' | 'user'
+  targetType: 'post' | 'comment' | 'user' | 'message'
   targetPath: string
   targetUser: string
   reason: string
   detail: string
+  messageContent?: string
   status: 'open' | 'resolved'
   createdAt: Timestamp | null
 }
@@ -36,7 +37,7 @@ const REASON_LABEL: Record<string, string> = {
   privacy: '他人の個人情報や、許可のない写真',
   other: 'その他',
 }
-const TARGET_LABEL = { post: '投稿', comment: 'コメント', user: '利用者' }
+const TARGET_LABEL = { post: '投稿', comment: 'コメント', user: '利用者', message: 'メッセージ' }
 
 // label はボタンの言葉、done は終わったときの知らせ
 type Pending = { title: string, body: string, label: string, done: string, danger: boolean, run: () => Promise<void> }
@@ -189,10 +190,16 @@ export function AdminPage({ me }: { me: string }) {
                     <p>
                       <span className="font-bold">{TARGET_LABEL[report.targetType]}</span>（{nameOf(report.targetUser)}さん）・理由: <span className="font-bold">{REASON_LABEL[report.reason] ?? report.reason}</span>
                     </p>
+                    {report.messageContent !== undefined && (
+                      <div className="flex flex-col gap-1">
+                        <p className="text-note text-muted">通報した人が添えたメッセージの内容（運営者には暗号文しか見えないため、本人が読んだものを添えています）</p>
+                        <p className="whitespace-pre-wrap break-words rounded-lg border border-border p-3">{report.messageContent || '（文字なし）'}</p>
+                      </div>
+                    )}
                     {report.detail && <p className="whitespace-pre-wrap break-words rounded-lg bg-bg p-3">{report.detail}</p>}
                     <div className="flex flex-wrap gap-2">
                       {link && <Link to={link} className="inline-flex min-h-11 items-center rounded-full border border-border px-4 text-note font-bold hover:bg-bg">対象を見る</Link>}
-                      {report.status === 'open' && report.targetType !== 'user' && (
+                      {report.status === 'open' && (report.targetType === 'post' || report.targetType === 'comment') && (
                         <Button variant="secondary" className="text-note" onClick={() => setPending(removeTarget(report))}>
                           {TARGET_LABEL[report.targetType]}を削除
                         </Button>

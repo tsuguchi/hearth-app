@@ -6,7 +6,8 @@ import { db } from '../firebase'
 
 // 通報（F-82）。理由を選び、補足を書いて運営者に送る。通報したことは相手に知らせない
 
-export type ReportTarget = { type: 'post' | 'comment' | 'user', path: string, user: string, label: string }
+// メッセージの通報では、運営者には中身が読めないので、通報する人が読んだ内容（content）を添える（F-83）
+export type ReportTarget = { type: 'post' | 'comment' | 'user' | 'message', path: string, user: string, label: string, content?: string }
 
 const REASONS = [
   { value: 'spam', label: 'スパム・宣伝' },
@@ -47,6 +48,7 @@ export function ReportDialog({ me, target, onClose }: { me: string, target: Repo
         detail: detail.trim(),
         status: 'open',
         createdAt: serverTimestamp(),
+        ...(target.type === 'message' ? { messageContent: (target.content ?? '').slice(0, 2000) } : {}),
       })
       setSent(true)
     } catch {
@@ -75,6 +77,13 @@ export function ReportDialog({ me, target, onClose }: { me: string, target: Repo
           ) : (
             <form onSubmit={submit} noValidate className="flex flex-col gap-4">
               <Dialog.Description>運営者だけが内容を見ます。通報したことは、相手には知らされません。</Dialog.Description>
+              {target.type === 'message' && (
+                <div className="flex flex-col gap-1">
+                  <p className="font-bold">運営者に送るメッセージの内容</p>
+                  <p className="text-note text-muted">メッセージは暗号化されていて、運営者には読めません。通報すると、この内容だけが運営者に送られます。</p>
+                  <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words rounded-lg bg-bg p-3">{target.content || '（文字なし。写真だけのメッセージです）'}</p>
+                </div>
+              )}
               {failure && <Notice tone="error">{failure}</Notice>}
               <fieldset aria-describedby={reasonError ? `${groupId}-error` : undefined} className="flex flex-col gap-1">
                 <legend className="mb-1 font-bold">理由</legend>

@@ -31,6 +31,9 @@ export function SettingsPage({ uid, profile, email }: { uid: string, profile: Pr
             <Link to="/settings/blocks" className="inline-flex min-h-11 items-center rounded-full border border-border px-5 font-bold hover:bg-bg">
               ブロックした人
             </Link>
+            <Link to="/settings/devices" className="inline-flex min-h-11 items-center rounded-full border border-border px-5 font-bold hover:bg-bg">
+              メッセージの端末
+            </Link>
           </div>
         </section>
         <div>
