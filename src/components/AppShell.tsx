@@ -1,7 +1,8 @@
-import { Bell, Home, type LucideIcon, MessageCircle, PlusSquare, Search, Settings, UserRound } from 'lucide-react'
+import { Bell, Home, type LucideIcon, MessageCircle, PlusSquare, Search, Settings, ShieldCheck, Ticket, UserRound } from 'lucide-react'
 import { type ReactNode, useEffect } from 'react'
 import { Link, NavLink } from 'react-router'
 import { EmulatorBanner } from './AuthLayout'
+import { useAuth } from '../auth/context'
 import { useNotifications } from '../notifications/NotificationsProvider'
 import { Logo } from './ui'
 
@@ -18,8 +19,11 @@ const MAIN_ITEMS: NavItem[] = [
 ]
 const SUB_ITEMS: NavItem[] = [
   { to: '/me', label: 'プロフィール', icon: UserRound },
+  { to: '/invites', label: '招待', icon: Ticket },
   { to: '/settings', label: '設定', icon: Settings },
 ]
+// 運営者にだけ出す
+const ADMIN_ITEM: NavItem = { to: '/admin', label: '運営者の画面', icon: ShieldCheck }
 
 function navClass(isActive: boolean, layout: 'bottom' | 'side'): string {
   const base = layout === 'bottom'
@@ -60,6 +64,8 @@ function NavItems({ items, layout }: { items: NavItem[], layout: 'bottom' | 'sid
 }
 
 export function AppShell({ title, children }: { title: string, children: ReactNode }) {
+  const { isAdmin } = useAuth()
+  const subItems = isAdmin ? [...SUB_ITEMS, ADMIN_ITEM] : SUB_ITEMS
   useEffect(() => {
     document.title = `${title}｜ハース`
   }, [title])
@@ -75,7 +81,7 @@ export function AppShell({ title, children }: { title: string, children: ReactNo
             <NavItems items={MAIN_ITEMS} layout="side" />
           </ul>
           <ul className="mt-auto flex flex-col gap-1">
-            <NavItems items={SUB_ITEMS} layout="side" />
+            <NavItems items={subItems} layout="side" />
           </ul>
         </nav>
 
@@ -85,7 +91,7 @@ export function AppShell({ title, children }: { title: string, children: ReactNo
             <Link to="/" className="text-subtitle"><Logo /></Link>
             <nav aria-label="自分のページ">
               <ul className="flex gap-1">
-                {SUB_ITEMS.map(({ to, label, icon: Icon }) => (
+                {subItems.map(({ to, label, icon: Icon }) => (
                   <li key={to}>
                     <NavLink to={to} aria-label={label} className={({ isActive }) => `flex size-11 items-center justify-center rounded-full ${isActive ? 'text-accent-text' : 'text-muted hover:text-text'}`}>
                       <Icon aria-hidden className="size-6" />

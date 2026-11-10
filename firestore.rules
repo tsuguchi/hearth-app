@@ -188,6 +188,12 @@ service cloud.firestore {
     // 通報（3.9、F-82）。利用者が作り、運営者だけが読む。メッセージの通報は、メッセージの機能と一緒に足す
     match /reports/{reportId} {
       allow read: if isMember() && request.auth.token.admin == true;
+      // 運営者は、対応済みにする（または戻す）ことだけができる（F-91）
+      allow update: if isMember() && request.auth.token.admin == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'handledAt', 'handledBy'])
+        && request.resource.data.status in ['open', 'resolved']
+        && request.resource.data.handledBy == request.auth.uid
+        && request.resource.data.handledAt == request.time;
       allow create: if isMember()
         && request.resource.data.keys().hasOnly(['reporter', 'targetType', 'targetPath', 'targetUser', 'reason', 'detail', 'status', 'createdAt'])
         && request.resource.data.reporter == request.auth.uid

@@ -9,7 +9,9 @@ import { NotMemberPage } from './pages/auth/NotMemberPage'
 import { ProfileSetupPage } from './pages/auth/ProfileSetupPage'
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
 import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
+import { AdminPage } from './pages/AdminPage'
 import { BlockedUsersPage } from './pages/BlockedUsersPage'
+import { InvitesPage } from './pages/InvitesPage'
 import { NewPostPage } from './pages/NewPostPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { PostPage } from './pages/PostPage'
@@ -45,6 +47,7 @@ export default function App() {
 }
 
 function MemberApp({ user }: { user: User }) {
+  const { isAdmin } = useAuth()
   const { profile, error } = useMyProfile(user.uid)
 
   if (error) {
@@ -56,6 +59,8 @@ function MemberApp({ user }: { user: User }) {
   }
   if (profile === undefined) return <Loading />
   if (profile === null) return <ProfileSetupPage uid={user.uid} />
+  // 止められたアカウント（F-92）。ログインの証明書が切れる前でも、ここで止める
+  if (profile.status === 'suspended') return <NotMemberPage />
 
   return (
     <PhotoSession>
@@ -71,6 +76,8 @@ function MemberApp({ user }: { user: User }) {
               <Route path="/me" element={<Navigate to={`/users/${profile.username}`} replace />} />
               <Route path="/users/:username" element={<ProfilePage />} />
               <Route path="/posts/:postId" element={<PostPage me={user.uid} />} />
+              <Route path="/invites" element={<InvitesPage />} />
+              {isAdmin && <Route path="/admin" element={<AdminPage me={user.uid} />} />}
               <Route path="/settings/blocks" element={<BlockedUsersPage me={user.uid} />} />
               <Route path="/settings/profile" element={<ProfileEditPage uid={user.uid} profile={profile} />} />
               <Route path="/settings" element={<SettingsPage uid={user.uid} profile={profile} email={user.email} />} />
