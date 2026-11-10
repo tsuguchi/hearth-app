@@ -2,9 +2,12 @@ import { signOut } from 'firebase/auth'
 import { AppShell } from '../components/AppShell'
 import { Button } from '../components/ui'
 import { auth } from '../firebase'
+import { PHOTO_LIMIT } from '../posts/types'
 import type { Profile } from '../profile/useMyProfile'
+import { usePhotoCount } from '../profile/usePhotoCount'
 
-export function SettingsPage({ profile, email }: { profile: Profile, email: string | null }) {
+export function SettingsPage({ uid, profile, email }: { uid: string, profile: Profile, email: string | null }) {
+  const photoCount = usePhotoCount(uid)
   return (
     <AppShell title="設定">
       <div className="flex flex-col gap-6">
@@ -17,6 +20,8 @@ export function SettingsPage({ profile, email }: { profile: Profile, email: stri
             <dd>{profile.displayName}</dd>
             <dt className="text-muted">メールアドレス</dt>
             <dd className="break-all">{email}</dd>
+            <dt className="text-muted">写真の枚数</dt>
+            <dd>{photoCount === null ? '読み込み中…' : `${photoCount} / ${PHOTO_LIMIT} 枚`}</dd>
           </dl>
         </section>
         <div>

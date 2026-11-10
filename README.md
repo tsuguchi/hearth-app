@@ -3,7 +3,7 @@
 招待を受けた人だけが使える、写真を共有するための Web アプリケーション。
 写真の投稿、フォロー・いいね・コメント、24 時間で消える投稿、1 対 1 のメッセージ（運営者にも読めないよう暗号化）ができる。
 
-いまは作り始めの段階。招待による登録・ログイン・プロフィールの作成と、画面の枠ができている。
+いまは作り始めの段階。招待による登録・ログイン・プロフィールの作成、写真の投稿と削除、「みんな」のタイムラインができている。
 
 - 要件: [REQUIREMENTS.md](REQUIREMENTS.md)
 - デザインの方針: [DESIGN.md](DESIGN.md)
@@ -29,13 +29,15 @@ Java（Firebase Emulator が使う）と Node.js が必要。
 - 開発サーバーの番号が `5173` でないときは、`APP_URL=http://localhost:番号 npm run seed` のように渡す
 - 確認メールは実際には送られない。Emulator の管理画面の Authentication か、`http://127.0.0.1:9199/emulator/v1/projects/demo-hearth/oobCodes` に出るリンクを開くと、確認が済む
 - Emulator のポートは、家計簿アプリと同時に動かせるよう、既定とずらしている（Auth 9199、Firestore 8180、管理画面 4100）
+- 写真を置く R2 は、開発中は手元で動く模擬の R2 を使う（Cloudflare のアカウントは要らない）。置いた写真は `.wrangler/` に残る
+- 写真は、Workers が出す cookie（1 時間）を確かめてから `/photos/{ID}/{full|thumb}` で返す。cookie の署名の鍵は `.dev.vars` の `SESSION_SECRET`
 
 ## コマンド
 
 - `npm run dev`: 開発サーバー（画面と Workers）
 - `npm run build`: 本番用に組み立てる
 - `npm run lint`: コードの点検
-- `npm test`: Workers の処理と Security Rules のテスト（Emulator を自動で起動・終了する）
+- `npm test`: Workers の処理（登録・写真・投稿・cookie）と Security Rules のテスト（Emulator を自動で起動・終了する。R2 は模造品を使う）
 - `npm run emulators`: Firebase Emulator を起動する
 - `npm run seed`: Emulator に全体の設定と招待を 1 件作る
 

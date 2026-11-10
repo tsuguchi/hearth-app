@@ -2,3 +2,5 @@
 # Firebase Emulator につなぐ
 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9199
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8180
+# 写真を見るための cookie に署名する鍵。開発用の値（本番は wrangler secret で別の乱数を設定する）
+SESSION_SECRET=dev-only-session-secret-0123456789abcdef

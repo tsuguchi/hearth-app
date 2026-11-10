@@ -103,6 +103,22 @@ export async function getDocument(env: Env, path: string, transaction?: string):
   return document
 }
 
+// コレクションの中の文書の ID を、すべて返す（例 "posts/abc/comments"）
+export async function listDocumentIds(env: Env, collectionPath: string): Promise<string[]> {
+  const ids: string[] = []
+  let pageToken = ''
+  do {
+    const query = `?pageSize=300&mask.fieldPaths=__name__${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`
+    const data = await expectOk(await call(env, 'GET', `${baseUrl(env)}/documents/${collectionPath}${query}`)) as {
+      documents?: { name: string }[]
+      nextPageToken?: string
+    }
+    for (const document of data.documents ?? []) ids.push(document.name.split('/').at(-1)!)
+    pageToken = data.nextPageToken ?? ''
+  } while (pageToken)
+  return ids
+}
+
 export async function beginTransaction(env: Env): Promise<string> {
   const data = await expectOk(await call(env, 'POST', `${baseUrl(env)}/documents:beginTransaction`, {})) as { transaction: string }
   return data.transaction

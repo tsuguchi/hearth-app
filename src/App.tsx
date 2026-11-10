@@ -9,8 +9,11 @@ import { NotMemberPage } from './pages/auth/NotMemberPage'
 import { ProfileSetupPage } from './pages/auth/ProfileSetupPage'
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
 import { VerifyEmailPage } from './pages/auth/VerifyEmailPage'
+import { NewPostPage } from './pages/NewPostPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { TimelinePage } from './pages/TimelinePage'
+import { PhotoSession } from './photos/PhotoSession'
 import { useMyProfile } from './profile/useMyProfile'
 
 // ログイン → メールアドレスの確認 → 利用者の印の確認 → プロフィールを決める → ハースの画面、の順に進める
@@ -46,15 +49,17 @@ function MemberApp({ user }: { user: User }) {
   if (profile === null) return <ProfileSetupPage uid={user.uid} />
 
   return (
-    <Routes>
-      <Route path="/" element={<PlaceholderPage title="タイムライン" description="フォローしている人と、みんなの投稿が新しい順に並びます。" />} />
-      <Route path="/search" element={<PlaceholderPage title="検索" description="ユーザー名・表示名で人を、タグで投稿を探せます。" />} />
-      <Route path="/new" element={<PlaceholderPage title="投稿" description="写真 1〜10 枚と説明文で投稿できます。" />} />
-      <Route path="/notifications" element={<PlaceholderPage title="通知" description="いいね・コメント・フォロー・招待の知らせが並びます。" />} />
-      <Route path="/messages" element={<PlaceholderPage title="メッセージ" description="1 対 1 で、文字と写真を送り合えます。中身は運営者にも読めないよう暗号化します。" />} />
-      <Route path="/me" element={<PlaceholderPage title={profile.displayName} description={`@${profile.username} の投稿の一覧が並びます。`} />} />
-      <Route path="/settings" element={<SettingsPage profile={profile} email={user.email} />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <PhotoSession>
+      <Routes>
+        <Route path="/" element={<TimelinePage uid={user.uid} />} />
+        <Route path="/search" element={<PlaceholderPage title="検索" description="ユーザー名・表示名で人を、タグで投稿を探せます。" />} />
+        <Route path="/new" element={<NewPostPage uid={user.uid} />} />
+        <Route path="/notifications" element={<PlaceholderPage title="通知" description="いいね・コメント・フォロー・招待の知らせが並びます。" />} />
+        <Route path="/messages" element={<PlaceholderPage title="メッセージ" description="1 対 1 で、文字と写真を送り合えます。中身は運営者にも読めないよう暗号化します。" />} />
+        <Route path="/me" element={<PlaceholderPage title={profile.displayName} description={`@${profile.username} の投稿の一覧が並びます。`} />} />
+        <Route path="/settings" element={<SettingsPage uid={user.uid} profile={profile} email={user.email} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </PhotoSession>
   )
 }

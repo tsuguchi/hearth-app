@@ -74,6 +74,16 @@ service cloud.firestore {
       allow read: if isSelf(uid);
     }
 
+    // 写真の記録（3.3）。Workers だけが書く。持ち主と運営者だけが読める
+    match /photos/{photoId} {
+      allow read: if isMember() && (resource.data.owner == request.auth.uid || request.auth.token.admin == true);
+    }
+
+    // 投稿（3.4）。利用者全員が読める。止めたアカウントの投稿（hidden）は読めない。Workers だけが書く
+    match /posts/{postId} {
+      allow read: if isMember() && resource.data.hidden == false;
+    }
+
     // ここに書いていない文書（招待・全体の設定など）は、ブラウザからは読み書きできない
   }
 }
