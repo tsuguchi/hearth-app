@@ -94,7 +94,7 @@ export function AppShell({ title, children }: { title: string, children: ReactNo
 
         <div className="min-w-0 flex-1">
           {/* スマホ: 上の帯。プロフィールと設定はここから */}
-          <header className="sticky top-0 z-10 flex items-center justify-between border-b border-divider bg-bg/95 px-4 py-2 desktop:hidden">
+          <header className="sticky top-0 z-10 flex items-center justify-between border-b border-divider bg-bg px-4 py-2 desktop:hidden">
             <Link to="/" className="text-subtitle"><Logo /></Link>
             <nav aria-label="自分のページ">
               <ul className="flex gap-1">
