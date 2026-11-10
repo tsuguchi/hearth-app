@@ -103,6 +103,35 @@ export async function getDocument(env: Env, path: string, transaction?: string):
   return document
 }
 
+// 1 つの欄が値と等しい文書を探す（例: invites の createdBy が uid と等しいもの）。{ id, fields } の配列を返す
+export async function findDocuments(env: Env, collectionId: string, field: string, value: Value): Promise<{ id: string, fields: Fields }[]> {
+  const results = await expectOk(await call(env, 'POST', `${baseUrl(env)}/documents:runQuery`, {
+    structuredQuery: {
+      from: [{ collectionId }],
+      where: { fieldFilter: { field: { fieldPath: field }, op: 'EQUAL', value: encodeValue(value) } },
+    },
+  })) as { document?: { name: string, fields?: Record<string, Encoded> } }[]
+  return results
+    .filter((result) => result.document)
+    .map((result) => ({ id: result.document!.name.split('/').at(-1)!, fields: decodeFields(result.document!.fields ?? {}) }))
+}
+
+// コレクションの文書を、すべて返す（件数の少ないコレクションだけに使う）
+export async function listDocuments(env: Env, collectionPath: string): Promise<{ id: string, fields: Fields }[]> {
+  const documents: { id: string, fields: Fields }[] = []
+  let pageToken = ''
+  do {
+    const query = `?pageSize=300${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`
+    const data = await expectOk(await call(env, 'GET', `${baseUrl(env)}/documents/${collectionPath}${query}`)) as {
+      documents?: { name: string, fields?: Record<string, Encoded> }[]
+      nextPageToken?: string
+    }
+    for (const document of data.documents ?? []) documents.push({ id: document.name.split('/').at(-1)!, fields: decodeFields(document.fields ?? {}) })
+    pageToken = data.nextPageToken ?? ''
+  } while (pageToken)
+  return documents
+}
+
 // コレクションの中の文書の ID を、すべて返す（例 "posts/abc/comments"）
 export async function listDocumentIds(env: Env, collectionPath: string): Promise<string[]> {
   const ids: string[] = []

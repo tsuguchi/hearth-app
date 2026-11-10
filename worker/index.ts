@@ -1,4 +1,7 @@
+import { adminState, setSuspended, updateInviteSettings } from './admin'
 import { type Env } from './env'
+import { getDocument } from './firestore'
+import { createInvite, listMyInvites, revokeInvite } from './invites'
 import { join, type JoinErrorCode } from './join'
 import { servePhoto, uploadPhoto } from './photos'
 import { createPost, deletePost } from './posts'
@@ -70,6 +73,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
   // ここから先は、利用者だけが使える
   const caller = await callerFrom(env, request)
   if (!caller) return json({ error: 'unauthorized' }, 401)
+  // 止めたアカウントは、出ている証明書が切れる前（最長 1 時間）でも、ここで断る（F-92）
+  if ((await getDocument(env, `users/${caller.uid}`))?.status === 'suspended') return json({ error: 'suspended' }, 403)
 
   if (pathname === '/api/session' && method === 'POST') {
     const value = await createSessionValue(env, caller.uid)
@@ -91,6 +96,21 @@ async function handle(request: Request, env: Env): Promise<Response> {
 
   const post = pathname.match(/^\/api\/posts\/([^/]+)$/)
   if (post && method === 'DELETE') return respond(await deletePost(env, caller, post[1]))
+
+  if (pathname === '/api/invites' && method === 'GET') return respond(await listMyInvites(env, caller))
+  if (pathname === '/api/invites' && method === 'POST') return respond(await createInvite(env, caller))
+  const invite = pathname.match(/^\/api\/invites\/([^/]+)$/)
+  if (invite && method === 'DELETE') return respond(await revokeInvite(env, caller, invite[1]))
+
+  // ここから先は、運営者だけが使える
+  if (pathname.startsWith('/api/admin/')) {
+    if (!caller.admin) return json({ error: 'forbidden' }, 403)
+    if (pathname === '/api/admin/state' && method === 'GET') return respond(await adminState(env))
+    if (pathname === '/api/admin/invite-settings' && method === 'POST') return respond(await updateInviteSettings(env, await readJson(request)))
+    const user = pathname.match(/^\/api\/admin\/users\/([^/]+)\/suspension$/)
+    if (user && method === 'PUT') return respond(await setSuspended(env, caller, user[1], true))
+    if (user && method === 'DELETE') return respond(await setSuspended(env, caller, user[1], false))
+  }
 
   return json({ error: 'not_found' }, 404)
 }

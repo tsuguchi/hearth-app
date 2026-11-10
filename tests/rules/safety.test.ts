@@ -1,5 +1,5 @@
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing'
-import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, writeBatch, type Firestore } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch, type Firestore } from 'firebase/firestore'
 import { readFileSync } from 'node:fs'
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest'
 import { PROJECT_ID } from '../helpers'
@@ -68,5 +68,13 @@ describe('通報', () => {
     await setDoc(doc(db('bob'), 'reports/r1'), report('bob'))
     await assertFails(setDoc(doc(db('bob'), 'reports/r1'), report('bob', { detail: '書き換え' })))
     await assertFails(deleteDoc(doc(db('bob'), 'reports/r1')))
+  })
+  it('運営者は対応済みにできる。ほかの欄は書き換えられず、利用者は対応済みにできない', async () => {
+    await setDoc(doc(db('bob'), 'reports/r1'), report('bob'))
+    const admin = db('admin', { ...member, admin: true })
+    await assertFails(updateDoc(doc(db('bob'), 'reports/r1'), { status: 'resolved', handledBy: 'bob', handledAt: serverTimestamp() }))
+    await assertFails(updateDoc(doc(admin, 'reports/r1'), { status: 'resolved', handledBy: 'admin', handledAt: serverTimestamp(), detail: '書き換え' }))
+    await assertFails(updateDoc(doc(admin, 'reports/r1'), { status: 'resolved', handledBy: 'someone', handledAt: serverTimestamp() }))
+    await assertSucceeds(updateDoc(doc(admin, 'reports/r1'), { status: 'resolved', handledBy: 'admin', handledAt: serverTimestamp() }))
   })
 })

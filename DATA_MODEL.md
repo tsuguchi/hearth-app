@@ -209,9 +209,14 @@
 | `GET /photos/{id}/{full\|thumb}` | cookie を確かめてから R2 の写真を返す。メッセージの写真は、やり取りの 2 人にだけ返す |
 | `POST /api/posts`・`PATCH`・`DELETE` | 投稿を作る・直す・消す |
 | `POST /api/stories`・`DELETE` | 24 時間で消える投稿 |
-| `POST /api/invites`・`GET`・`DELETE` | 招待を作る（5 件まで）・一覧・取り消し |
+| `POST /api/invites`・`GET`・`DELETE /api/invites/{ID}` | 招待を作る（未使用は 5 件まで）・一覧・取り消し。招待の文字列は作ったときに一度だけ返す |
+
+- 利用者だけが使える API は、`users.status` が `suspended` の人を、出ている証明書が切れる前（最長 1 時間）でも断る
+- 通報（`reports`）を対応済みにするのは、運営者がブラウザから直接書く（Security Rules で `status`・`handledAt`・`handledBy` だけに限る）
 | `DELETE /api/account` | アカウントの削除（F-06） |
-| `/api/admin/…` | 通報の対応、アカウントの停止、招待の管理（`admin` だけ） |
+| `GET /api/admin/state` | 全体の設定と、招待の記録（だれがだれを招待したか）（`admin` だけ） |
+| `POST /api/admin/invite-settings` | 招待を全体で止める・再開する、特定の人の招待を止める・許す（`admin` だけ） |
+| `PUT`・`DELETE /api/admin/users/{uid}/suspension` | アカウントを止める・戻す。アカウントの無効化と証明書の取り消し、`member` の印、`users.status`、投稿の `hidden` をまとめて切り替える（`admin` だけ） |
 
 - 写真は Workers と同じ場所（同じドメイン）から配るので、cookie で確かめられ、`<img>` でそのまま表示できる
 - 利用者自身による登録は、Firebase の設定（Authentication → Settings → User actions の「Enable create (sign-up)」を外す）で止め、アカウントは `POST /api/join` からだけ作る

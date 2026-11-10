@@ -44,3 +44,18 @@ export async function setCustomClaims(env: Env, uid: string, claims: Record<stri
 export async function deleteAccount(env: Env, uid: string): Promise<void> {
   await call(env, '/accounts:delete', { localId: uid })
 }
+
+// アカウントを止める・戻す。止めるときは、出ているログインの証明書を以後使えなくする
+export async function setAccountDisabled(env: Env, uid: string, disabled: boolean): Promise<void> {
+  await call(env, '/accounts:update', {
+    localId: uid,
+    disableUser: disabled,
+    ...(disabled ? { validSince: String(Math.floor(Date.now() / 1000)) } : {}),
+  })
+}
+
+export async function getCustomClaims(env: Env, uid: string): Promise<Record<string, unknown>> {
+  const data = await call(env, '/accounts:lookup', { localId: [uid] }) as { users?: { customAttributes?: string }[] }
+  const raw = data.users?.[0]?.customAttributes
+  return raw ? JSON.parse(raw) as Record<string, unknown> : {}
+}
