@@ -6,6 +6,7 @@
 いまは要件定義の段階。
 
 - 要件: [REQUIREMENTS.md](REQUIREMENTS.md)
+- デザインの方針: [DESIGN.md](DESIGN.md)
 
 ## ブランチの使い方
 
