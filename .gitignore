@@ -4,3 +4,10 @@ dist/
 .wrangler/
 *.log
 .DS_Store
+.dev.vars
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+# 本番の鍵（リポジトリの外に置くこと。万一入っても Git に入らないように）
+*service-account*.json
+.firebaserc.local

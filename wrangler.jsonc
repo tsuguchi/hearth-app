@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "hearth-app",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-11-10",
+  "assets": {
+    // SPA なので、どの URL でも index.html を返す
+    "not_found_handling": "single-page-application",
+    // API と写真は、画面のファイルより先に Workers で受ける
+    "run_worker_first": ["/api/*", "/photos/*"]
+  },
+  // 写真を置く R2。開発中（npm run dev）は、手元で動く模擬の R2 を使う
+  "r2_buckets": [
+    { "binding": "PHOTOS", "bucket_name": "hearth-photos" }
+  ],
+  "vars": {
+    "FIREBASE_PROJECT_ID": "hearth-app-5cd5b"
+  }
+}
