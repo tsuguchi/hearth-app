@@ -1,0 +1,4 @@
+# npm run dev で Workers が使う設定。.dev.vars にコピーする（Git には入らない）
+# Firebase Emulator につなぐ
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9199
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8180
