@@ -3,6 +3,7 @@ import { MessageCircle } from 'lucide-react'
 import { type FormEvent, useEffect, useId, useRef, useState } from 'react'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Button, TextAreaField } from '../components/ui'
+import { UserLink } from '../components/UserLink'
 import { db } from '../firebase'
 import { formatPostTime } from '../posts/format'
 import { useProfiles } from '../profile/useProfiles'
@@ -140,7 +141,7 @@ function CommentList({ id, me, postId, postAuthor, isAdmin, onCount, onError }: 
             return (
               <li key={comment.id} className="flex flex-col gap-1">
                 <p className="text-note">
-                  <span className="font-bold">{profile?.displayName ?? '…'}</span>
+                  <UserLink profile={profile} />
                   {date && <time dateTime={date.toISOString()} className="ml-2 text-muted">{formatPostTime(date)}</time>}
                 </p>
                 <p className="whitespace-pre-wrap break-words">{comment.text}</p>

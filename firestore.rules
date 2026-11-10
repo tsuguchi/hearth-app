@@ -79,9 +79,13 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.username != name;
     }
 
-    // 本人だけの情報（3.1）。Workers だけが書く
+    // 本人だけの情報（3.1）。Workers が書く
     match /userPrivate/{uid} {
       allow read: if isSelf(uid);
+      // 通知の一覧を開いた日時（読んだかどうかを決める）だけは、本人が書ける
+      allow update: if isSelf(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastReadNotificationsAt'])
+        && request.resource.data.lastReadNotificationsAt == request.time;
     }
 
     // 写真の記録（3.3）。Workers だけが書く。持ち主と運営者だけが読める

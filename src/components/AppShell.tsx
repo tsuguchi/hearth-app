@@ -2,6 +2,7 @@ import { Bell, Home, type LucideIcon, MessageCircle, PlusSquare, Search, Setting
 import { type ReactNode, useEffect } from 'react'
 import { Link, NavLink } from 'react-router'
 import { EmulatorBanner } from './AuthLayout'
+import { useNotifications } from '../notifications/NotificationsProvider'
 import { Logo } from './ui'
 
 type NavItem = { to: string, label: string, shortLabel?: string, icon: LucideIcon }
@@ -27,14 +28,30 @@ function navClass(isActive: boolean, layout: 'bottom' | 'side'): string {
   return `${base} ${isActive ? 'font-bold text-accent-text' : 'text-muted hover:text-text'}`
 }
 
+// 読んでいない数（F-96）。色だけに頼らず数字で示す。読み上げ用の「未読 3 件」は、名前の後ろに別に置く
+function Badge({ count, layout }: { count: number, layout: 'bottom' | 'side' }) {
+  if (count === 0) return null
+  return (
+    <span aria-hidden className={`rounded-full bg-accent px-1.5 text-note leading-5 font-bold text-on-accent ${layout === 'bottom' ? 'absolute -top-1 left-1/2 ml-1' : 'ml-auto'}`}>
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
 function NavItems({ items, layout }: { items: NavItem[], layout: 'bottom' | 'side' }) {
+  const { unread } = useNotifications()
   return items.map(({ to, label, shortLabel, icon: Icon }) => (
     <li key={to} className={layout === 'bottom' ? 'flex-1' : ''}>
       <NavLink to={to} end={to === '/'} className={({ isActive }) => navClass(isActive, layout)}>
         {({ isActive }) => (
           <>
-            <Icon aria-hidden className="size-6 shrink-0" strokeWidth={isActive ? 2.5 : 1.75} />
+            <span className="relative">
+              <Icon aria-hidden className="size-6 shrink-0" strokeWidth={isActive ? 2.5 : 1.75} />
+              {to === '/notifications' && layout === 'bottom' && <Badge count={unread} layout="bottom" />}
+            </span>
             <span>{layout === 'bottom' ? shortLabel ?? label : label}</span>
+            {to === '/notifications' && unread > 0 && <span className="sr-only">（未読 {unread} 件）</span>}
+            {to === '/notifications' && layout === 'side' && <Badge count={unread} layout="side" />}
           </>
         )}
       </NavLink>

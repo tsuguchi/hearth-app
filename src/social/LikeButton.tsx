@@ -2,6 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { collection, doc, getCountFromServer, getDocs, limit, onSnapshot, orderBy, query } from 'firebase/firestore'
 import { Heart, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { UserLink } from '../components/UserLink'
 import { db } from '../firebase'
 import { useProfiles } from '../profile/useProfiles'
 import { like, unlike } from './actions'
@@ -105,7 +106,7 @@ function LikersDialog({ postId, onClose }: { postId: string, onClose: () => void
                 const profile = profiles.get(uid)
                 return (
                   <li key={uid}>
-                    <span className="font-bold">{profile?.displayName ?? '…'}</span>
+                    <UserLink profile={profile} onClick={onClose} />
                     {profile && <span className="ml-2 text-note text-muted">@{profile.username}</span>}
                   </li>
                 )

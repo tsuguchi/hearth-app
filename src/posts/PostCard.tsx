@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { api, ApiError } from '../api'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Notice } from '../components/ui'
+import { UserLink } from '../components/UserLink'
 import type { Profile } from '../profile/useMyProfile'
 import { Comments } from '../social/Comments'
 import { FollowButton } from '../social/FollowButton'
@@ -45,7 +46,7 @@ export function PostCard({ post, author, me, isAdmin, onDeleted }: {
           <UserRound className="size-6" />
         </span>
         <div className="min-w-0 flex-1">
-          <p id={`post-${post.id}-author`} className="truncate font-bold">{name}</p>
+          <p id={`post-${post.id}-author`} className="truncate"><UserLink profile={author} /></p>
           <p className="truncate text-note text-muted">
             {author && <span>@{author.username}</span>}
             {date && <> ・ <time dateTime={date.toISOString()}>{formatPostTime(date)}</time></>}

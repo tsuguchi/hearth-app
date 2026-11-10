@@ -47,7 +47,7 @@
 | `photoCount` | 今残っている写真の枚数（F-26）。Workers だけが変える |
 | `invitedBy` | 招待した人の uid（F-13） |
 | `adultConfirmedAt` | 18 歳以上と申告した日時（F-02） |
-| `lastReadNotificationsAt` | 通知の一覧を最後に開いた日時 |
+| `lastReadNotificationsAt` | 通知の一覧を最後に開いた日時。この欄だけは本人が書ける（今の日時に限る） |
 
 ### 3.2 招待（Workers だけが読み書きする）
 
