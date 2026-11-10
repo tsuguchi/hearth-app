@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from 'react'
 import { usesEmulator } from '../firebase'
+import { LegalLinks } from './LegalLinks'
 import { Logo } from './ui'
 
 // ログインや登録など、利用者の画面に入る前の画面の枠
@@ -17,6 +18,7 @@ export function AuthLayout({ title, children }: { title: string, children: React
           <h1 className="text-title font-bold">{title}</h1>
           {children}
         </div>
+        <LegalLinks className="justify-center" />
       </main>
     </>
   )

@@ -17,9 +17,9 @@ const writes = [
     // すでにあるときは、人数を残したまま設定だけを書く
     update: {
       name: `${documents}/config/app`,
-      fields: { memberCap: { integerValue: '50' }, invitesEnabled: { booleanValue: true }, invitesBlocked: { arrayValue: {} } },
+      fields: { memberCap: { integerValue: '50' }, invitesEnabled: { booleanValue: true }, invitesBlocked: { arrayValue: {} }, messagesEnabled: { booleanValue: true } },
     },
-    updateMask: { fieldPaths: ['memberCap', 'invitesEnabled', 'invitesBlocked'] },
+    updateMask: { fieldPaths: ['memberCap', 'invitesEnabled', 'invitesBlocked', 'messagesEnabled'] },
   },
   {
     update: {

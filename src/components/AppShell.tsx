@@ -3,6 +3,7 @@ import { type ReactNode, useEffect } from 'react'
 import { Link, NavLink } from 'react-router'
 import { EmulatorBanner } from './AuthLayout'
 import { useAuth } from '../auth/context'
+import { messagesEnabled } from '../features'
 import { useMessages } from '../messages/MessagesProvider'
 import { useNotifications } from '../notifications/NotificationsProvider'
 import { Logo } from './ui'
@@ -10,7 +11,7 @@ import { Logo } from './ui'
 type NavItem = { to: string, label: string, shortLabel?: string, icon: LucideIcon }
 
 // スマホでは画面の下に 5 つ、パソコンでは左に縦に並べる（DESIGN.md の 4 章）
-const MAIN_ITEMS: NavItem[] = [
+const ALL_MAIN_ITEMS: NavItem[] = [
   // スマホの下の切り替えは幅が狭いので、短い名前を使う
   { to: '/', label: 'タイムライン', shortLabel: 'ホーム', icon: Home },
   { to: '/search', label: '検索', icon: Search },
@@ -18,6 +19,8 @@ const MAIN_ITEMS: NavItem[] = [
   { to: '/notifications', label: '通知', icon: Bell },
   { to: '/messages', label: 'メッセージ', icon: MessageCircle },
 ]
+// メッセージを止めているときは、切り替えにも出さない
+const MAIN_ITEMS = ALL_MAIN_ITEMS.filter((item) => messagesEnabled || item.to !== '/messages')
 const SUB_ITEMS: NavItem[] = [
   { to: '/me', label: 'プロフィール', icon: UserRound },
   { to: '/invites', label: '招待', icon: Ticket },

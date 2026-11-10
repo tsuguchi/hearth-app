@@ -1,3 +1,4 @@
+import { deleteMyAccount } from './account'
 import { adminState, setSuspended, updateInviteSettings } from './admin'
 import { type Env } from './env'
 import { getDocument } from './firestore'
@@ -30,7 +31,7 @@ const UPLOAD_LIMIT = 7 * 1024 * 1024
 function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers },
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', ...headers },
   })
 }
 
@@ -114,6 +115,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
   }
   const message = pathname.match(/^\/api\/conversations\/([^/]+)\/messages\/([^/]+)$/)
   if (message && method === 'DELETE') return respond(await deleteMessage(env, caller, message[1], message[2]))
+
+  if (pathname === '/api/account' && method === 'DELETE') return respond(await deleteMyAccount(env, caller))
 
   if (pathname === '/api/invites' && method === 'GET') return respond(await listMyInvites(env, caller))
   if (pathname === '/api/invites' && method === 'POST') return respond(await createInvite(env, caller))
