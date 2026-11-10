@@ -14,6 +14,6 @@
     { "binding": "PHOTOS", "bucket_name": "hearth-photos" }
   ],
   "vars": {
-    "FIREBASE_PROJECT_ID": "demo-hearth"
+    "FIREBASE_PROJECT_ID": "hearth-app-5cd5b"
   }
 }
