@@ -8,6 +8,8 @@ import { db } from '../firebase'
 import { formatPostTime } from '../posts/format'
 import { useProfiles } from '../profile/useProfiles'
 import { addComment, COMMENT_MAX, deleteComment } from './actions'
+import { useBlocks } from './BlocksProvider'
+import { ReportDialog } from './ReportDialog'
 
 type Comment = { id: string, author: string, text: string, createdAt: Timestamp | null }
 
@@ -77,6 +79,8 @@ function CommentList({ id, me, postId, postAuthor, isAdmin, onCount, onError }: 
   const [busy, setBusy] = useState(false)
   const [inputError, setInputError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<Comment | null>(null)
+  const [reporting, setReporting] = useState<Comment | null>(null)
+  const { blocked } = useBlocks()
   const profiles = useProfiles((comments ?? []).map((comment) => comment.author))
   // 親から渡される関数は描くたびに変わるので、読み込みをやり直さないよう参照で持つ
   const callbacks = useRef({ onCount, onError })
@@ -134,7 +138,8 @@ function CommentList({ id, me, postId, postAuthor, isAdmin, onCount, onError }: 
       {comments && comments.length === 0 && <p className="text-muted">まだコメントはありません。</p>}
       {comments && comments.length > 0 && (
         <ul className="flex flex-col gap-3">
-          {comments.map((comment) => {
+          {/* ブロックした人のコメントは出さない（F-80） */}
+          {comments.filter((comment) => !blocked?.has(comment.author)).map((comment) => {
             const profile = profiles.get(comment.author)
             const date = comment.createdAt?.toDate()
             const canDelete = comment.author === me || postAuthor === me || isAdmin
@@ -145,15 +150,26 @@ function CommentList({ id, me, postId, postAuthor, isAdmin, onCount, onError }: 
                   {date && <time dateTime={date.toISOString()} className="ml-2 text-muted">{formatPostTime(date)}</time>}
                 </p>
                 <p className="whitespace-pre-wrap break-words">{comment.text}</p>
-                {canDelete && (
-                  <button
-                    type="button"
-                    onClick={() => setDeleting(comment)}
-                    className="min-h-11 self-start rounded-full text-note text-muted underline underline-offset-4 hover:text-error"
-                  >
-                    削除<span className="sr-only">（{profile?.displayName ?? ''}さんのコメント）</span>
-                  </button>
-                )}
+                <div className="flex gap-4">
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleting(comment)}
+                      className="min-h-11 rounded-full text-note text-muted underline underline-offset-4 hover:text-error"
+                    >
+                      削除<span className="sr-only">（{profile?.displayName ?? ''}さんのコメント）</span>
+                    </button>
+                  )}
+                  {comment.author !== me && (
+                    <button
+                      type="button"
+                      onClick={() => setReporting(comment)}
+                      className="min-h-11 rounded-full text-note text-muted underline underline-offset-4 hover:text-text"
+                    >
+                      通報<span className="sr-only">（{profile?.displayName ?? ''}さんのコメント）</span>
+                    </button>
+                  )}
+                </div>
               </li>
             )
           })}
@@ -183,6 +199,18 @@ function CommentList({ id, me, postId, postAuthor, isAdmin, onCount, onError }: 
       >
         <p>削除したコメントは元に戻せません。</p>
       </ConfirmDialog>
+      {reporting && (
+        <ReportDialog
+          me={me}
+          target={{
+            type: 'comment',
+            path: `posts/${postId}/comments/${reporting.id}`,
+            user: reporting.author,
+            label: `${profiles.get(reporting.author)?.displayName ?? ''}さんのコメント`,
+          }}
+          onClose={() => setReporting(null)}
+        />
+      )}
     </section>
   )
 }

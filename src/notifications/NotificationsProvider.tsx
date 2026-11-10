@@ -1,6 +1,7 @@
 import { collection, doc, limit, onSnapshot, orderBy, query, serverTimestamp, Timestamp, updateDoc, where } from 'firebase/firestore'
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { db } from '../firebase'
+import { useBlocks } from '../social/BlocksProvider'
 
 // 通知（F-95〜F-98）。画面の切り替えの数（読んでいない数）と、通知の一覧が使う
 
@@ -35,7 +36,8 @@ export function isUnread(notification: HearthNotification, lastRead: Timestamp |
 export function NotificationsProvider({ me, children }: { me: string, children: ReactNode }) {
   const [items, setItems] = useState<{ me: string, list: HearthNotification[] } | null>(null)
   const [lastRead, setLastRead] = useState<{ me: string, value: Timestamp | null } | null>(null)
-  const [blocked, setBlocked] = useState<{ me: string, set: Set<string> } | null>(null)
+  // ブロックした相手からの通知は出さない（F-98）
+  const { blocked } = useBlocks()
 
   // 90 日より前の通知は出さない（消すのは定時の実行）
   useEffect(() => {
@@ -53,21 +55,14 @@ export function NotificationsProvider({ me, children }: { me: string, children: 
     () => setLastRead({ me, value: null }),
   ), [me])
 
-  // ブロックした相手からの通知は出さない（F-98）
-  useEffect(() => onSnapshot(
-    collection(db, 'users', me, 'blocks'),
-    (snapshot) => setBlocked({ me, set: new Set(snapshot.docs.map((document) => document.id)) }),
-    () => setBlocked({ me, set: new Set() }),
-  ), [me])
-
   const markAllRead = useCallback(async () => {
     await updateDoc(doc(db, 'userPrivate', me), { lastReadNotificationsAt: serverTimestamp() })
   }, [me])
 
   const value = useMemo<NotificationsState>(() => {
-    const loaded = items?.me === me && lastRead?.me === me && blocked?.me === me
+    const loaded = items?.me === me && lastRead?.me === me && blocked !== null
     const read = lastRead?.me === me ? lastRead.value : null
-    const notifications = loaded ? items!.list.filter((notification) => !blocked!.set.has(notification.actor)) : []
+    const notifications = loaded ? items!.list.filter((notification) => !blocked!.has(notification.actor)) : []
     return {
       loaded,
       notifications,

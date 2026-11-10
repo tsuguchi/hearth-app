@@ -24,9 +24,14 @@ export function SettingsPage({ uid, profile, email }: { uid: string, profile: Pr
             <dt className="text-muted">写真の枚数</dt>
             <dd>{photoCount === null ? '読み込み中…' : `${photoCount} / ${PHOTO_LIMIT} 枚`}</dd>
           </dl>
-          <Link to="/settings/profile" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-border px-5 font-bold hover:bg-bg">
-            プロフィールを編集
-          </Link>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link to="/settings/profile" className="inline-flex min-h-11 items-center rounded-full border border-border px-5 font-bold hover:bg-bg">
+              プロフィールを編集
+            </Link>
+            <Link to="/settings/blocks" className="inline-flex min-h-11 items-center rounded-full border border-border px-5 font-bold hover:bg-bg">
+              ブロックした人
+            </Link>
+          </div>
         </section>
         <div>
           <Button variant="secondary" onClick={() => signOut(auth)}>ログアウト</Button>

@@ -109,6 +109,7 @@
 
 **`users/{uid}/blocks/{targetUid}`**: `{ createdAt }`（本人だけが読み書きする。Security Rules からは調べられる）
 
+- ブロックするときは、同じ書き込みでお互いのフォローも外す。相手から自分へのフォローは、ブロックと同じ書き込みでなら、ブロックした人が外せる（Security Rules で確かめる）
 - ブロックされた人には、ブロックされたことが分からない（F-81）。そのため、相手側の画面で投稿を隠すことはできず、ブロックした人の画面で相手を隠す。コメント・メッセージ・フォローは、Security Rules で 2 方向とも止める
 
 ### 3.6 24 時間で消える投稿
@@ -159,6 +160,7 @@
 | `reporter` | uid |
 | `targetType` | `'post' \| 'comment' \| 'story' \| 'user' \| 'message'` |
 | `targetPath` | 対象の文書の場所 |
+| `targetUser` | 通報された人の uid（自分自身は通報できない） |
 | `reason`・`detail` | 理由（選択）と補足 |
 | `messageContent` | メッセージの通報のときだけ、通報した人が読んだ内容（F-83） |
 | `status`・`handledAt`・`handledBy` | 運営者の対応 |

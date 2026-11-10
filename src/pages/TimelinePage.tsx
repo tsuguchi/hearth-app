@@ -6,6 +6,7 @@ import { Button, Notice } from '../components/ui'
 import { PostCard } from '../posts/PostCard'
 import { useFeed } from '../posts/useFeed'
 import { useProfiles } from '../profile/useProfiles'
+import { useBlocks } from '../social/BlocksProvider'
 import { useFollowing } from '../social/FollowingProvider'
 
 type FeedMode = 'following' | 'all'
@@ -59,7 +60,10 @@ function Feed({ authors, me, isAdmin, mode, onShowAll }: {
   mode: FeedMode
   onShowAll: () => void
 }) {
-  const { posts, status, hasMore, loadMore, remove } = useFeed(authors)
+  const { posts: loaded, status, hasMore, loadMore, remove } = useFeed(authors)
+  const { blocked } = useBlocks()
+  // ブロックした人の投稿は出さない（F-80）
+  const posts = loaded.filter((post) => !blocked?.has(post.author))
   const profiles = useProfiles(posts.map((post) => post.author))
   const sentinel = useRef<HTMLDivElement>(null)
 
@@ -76,7 +80,7 @@ function Feed({ authors, me, isAdmin, mode, onShowAll }: {
 
   return (
     <>
-      {posts.length === 0 && status === 'idle' && (
+      {posts.length === 0 && status === 'idle' && !hasMore && (
         <div className="flex flex-col gap-2 rounded-2xl bg-surface p-6">
           {mode === 'following' ? (
             <>

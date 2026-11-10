@@ -1,16 +1,20 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { collection, getCountFromServer, getDocs, limit, orderBy, query, type QueryDocumentSnapshot, startAfter, where } from 'firebase/firestore'
+import { collection, getCountFromServer, getDocs, limit, onSnapshot, orderBy, query, type QueryDocumentSnapshot, startAfter, where } from 'firebase/firestore'
 import { UserRound, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { AppShell } from '../components/AppShell'
+import { ConfirmDialog } from '../components/ConfirmDialog'
+import { MoreMenu } from '../components/MoreMenu'
 import { Button, Notice } from '../components/ui'
 import { UserLink } from '../components/UserLink'
 import { db } from '../firebase'
 import { photoUrl, type Post } from '../posts/types'
 import { useProfiles } from '../profile/useProfiles'
 import { useUserByUsername } from '../profile/useUser'
+import { block, unblock, useBlocks } from '../social/BlocksProvider'
 import { FollowButton } from '../social/FollowButton'
+import { ReportDialog } from '../social/ReportDialog'
 import { useFollowing } from '../social/FollowingProvider'
 
 const PAGE_SIZE = 30
@@ -20,7 +24,10 @@ export function ProfilePage() {
   const { username = '' } = useParams()
   const user = useUserByUsername(username)
   const { me } = useFollowing()
+  const { blocked } = useBlocks()
   const [error, setError] = useState<string | null>(null)
+  const [dialog, setDialog] = useState<'block' | 'unblock' | 'report' | null>(null)
+  const [busy, setBusy] = useState(false)
 
   if (user === undefined) {
     return <AppShell title="プロフィール"><p role="status" className="text-muted">読み込み中…</p></AppShell>
@@ -37,6 +44,18 @@ export function ProfilePage() {
 
   const { uid, profile } = user
   const isMe = uid === me
+  const isBlocked = blocked?.has(uid) ?? false
+
+  async function changeBlock(next: boolean) {
+    setBusy(true)
+    try {
+      await (next ? block(me, uid) : unblock(me, uid))
+    } catch {
+      setError(next ? 'ブロックできませんでした。もう一度お試しください。' : 'ブロックを解除できませんでした。もう一度お試しください。')
+    }
+    setBusy(false)
+    setDialog(null)
+  }
   return (
     <AppShell title={profile.displayName}>
       <div className="flex flex-col gap-6">
@@ -46,7 +65,20 @@ export function ProfilePage() {
               <UserRound className="size-9" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-note text-muted">@{profile.username}</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-note text-muted">@{profile.username}</p>
+                {!isMe && (
+                  <MoreMenu
+                    label={`${profile.displayName}さんへの操作`}
+                    items={[
+                      isBlocked
+                        ? { label: 'ブロックを解除', onSelect: () => setDialog('unblock') }
+                        : { label: 'ブロックする', onSelect: () => setDialog('block'), danger: true },
+                      { label: '通報する', onSelect: () => setDialog('report') },
+                    ]}
+                  />
+                )}
+              </div>
               {isMe ? (
                 <Link to="/settings/profile" className="mt-1 inline-flex min-h-11 items-center rounded-full border border-border px-4 text-note font-bold hover:bg-bg">
                   プロフィールを編集
@@ -60,34 +92,86 @@ export function ProfilePage() {
           {error && <Notice tone="error">{error}</Notice>}
           <Counts uid={uid} />
         </section>
-        <PostGrid uid={uid} name={profile.displayName} />
+        {isBlocked ? (
+          <div className="flex flex-col gap-3 rounded-2xl bg-surface p-6">
+            <p>{profile.displayName}さんをブロックしています。この人の投稿・コメント・通知は、あなたの画面に出ません。</p>
+            <div><Button variant="secondary" onClick={() => setDialog('unblock')}>ブロックを解除する</Button></div>
+          </div>
+        ) : (
+          <PostGrid uid={uid} name={profile.displayName} />
+        )}
       </div>
+      <ConfirmDialog
+        open={dialog === 'block'}
+        onOpenChange={(open) => !open && setDialog(null)}
+        title={`${profile.displayName}さんをブロックしますか？`}
+        confirmLabel="ブロックする"
+        busy={busy}
+        onConfirm={() => changeBlock(true)}
+      >
+        <ul className="list-disc pl-5">
+          <li>お互いのフォローが外れ、この人はあなたをフォロー・コメント・いいねできなくなります。</li>
+          <li>この人の投稿・コメント・通知は、あなたの画面に出なくなります。</li>
+          <li>ブロックしたことは、相手には知らされません。あとから解除できます。</li>
+        </ul>
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={dialog === 'unblock'}
+        onOpenChange={(open) => !open && setDialog(null)}
+        title={`${profile.displayName}さんのブロックを解除しますか？`}
+        confirmLabel="解除する"
+        danger={false}
+        busy={busy}
+        onConfirm={() => changeBlock(false)}
+      >
+        <p>この人の投稿などが、また画面に出るようになります。外れたフォローは戻りません。</p>
+      </ConfirmDialog>
+      {dialog === 'report' && (
+        <ReportDialog
+          me={me}
+          target={{ type: 'user', path: `users/${uid}`, user: uid, label: `${profile.displayName}さん` }}
+          onClose={() => setDialog(null)}
+        />
+      )}
     </AppShell>
   )
 }
 
-// 投稿数・フォロー数・フォロワー数。フォロー・フォロワーは押すと一覧を開く
+// 投稿数・フォロー数・フォロワー数。フォロー・フォロワーは押すと一覧を開く。
+// フォローの数は、変わったらすぐ画面に出るよう、文書の変化を受け取って数える（利用者は 50 人までなので件数は小さい）
 function Counts({ uid }: { uid: string }) {
-  const [counts, setCounts] = useState<{ uid: string, posts: number, following: number, followers: number } | null>(null)
+  const [posts, setPosts] = useState<{ uid: string, value: number } | null>(null)
+  const [following, setFollowing] = useState<{ uid: string, value: number } | null>(null)
+  const [followers, setFollowers] = useState<{ uid: string, value: number } | null>(null)
   const [list, setList] = useState<'following' | 'followers' | null>(null)
-  const { following: myFollowing } = useFollowing()
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([
-      getCountFromServer(query(collection(db, 'posts'), where('author', '==', uid), where('hidden', '==', false))),
-      getCountFromServer(query(collection(db, 'follows'), where('follower', '==', uid))),
-      getCountFromServer(query(collection(db, 'follows'), where('followee', '==', uid))),
-    ]).then(([posts, following, followers]) => {
-      if (!cancelled) setCounts({ uid, posts: posts.data().count, following: following.data().count, followers: followers.data().count })
-    }).catch(() => {})
+    getCountFromServer(query(collection(db, 'posts'), where('author', '==', uid), where('hidden', '==', false)))
+      .then((snapshot) => !cancelled && setPosts({ uid, value: snapshot.data().count }))
+      .catch(() => {})
     return () => {
       cancelled = true
     }
-    // 自分がフォローを増減したら、数え直す
-  }, [uid, myFollowing])
+  }, [uid])
 
-  const current = counts?.uid === uid ? counts : null
+  useEffect(() => onSnapshot(
+    query(collection(db, 'follows'), where('follower', '==', uid)),
+    (snapshot) => setFollowing({ uid, value: snapshot.size }),
+    () => {},
+  ), [uid])
+
+  useEffect(() => onSnapshot(
+    query(collection(db, 'follows'), where('followee', '==', uid)),
+    (snapshot) => setFollowers({ uid, value: snapshot.size }),
+    () => {},
+  ), [uid])
+
+  const current = {
+    posts: posts?.uid === uid ? posts.value : undefined,
+    following: following?.uid === uid ? following.value : undefined,
+    followers: followers?.uid === uid ? followers.value : undefined,
+  }
   const item = (label: string, value: number | undefined) => (
     <>
       <span className="font-bold text-text">{value ?? '…'}</span>
