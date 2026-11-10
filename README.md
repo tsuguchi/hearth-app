@@ -7,6 +7,7 @@
 
 - 要件: [REQUIREMENTS.md](REQUIREMENTS.md)
 - デザインの方針: [DESIGN.md](DESIGN.md)
+- データ構造と暗号化の設計: [DATA_MODEL.md](DATA_MODEL.md)
 
 ## ブランチの使い方
 
