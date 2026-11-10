@@ -4,3 +4,7 @@ dist/
 .wrangler/
 *.log
 .DS_Store
+.dev.vars
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
